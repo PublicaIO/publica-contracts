@@ -8,12 +8,12 @@ In order to run tests you will need to connect to RPC server and create 3 accoun
 
 After you have your RPC server up and running for the first time you should run
 
-```
+```sh
 npm run test:build
 ```
 
 subsequent runs can have `:build` omitted in case contracts code was not changed.
 
-```
+```sh
 npm run test
 ```
