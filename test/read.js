@@ -16,6 +16,7 @@ describe('ReadContract', () => {
         pebblesOwner = accounts[0];
         readOwner = accounts[1];
         dataOwner = accounts[2];
+        buyer = accounts[3];
 
         // Deploy new data contract before every test
         const dataContract = new web3.eth.Contract(DataContract.abi);
@@ -32,7 +33,6 @@ describe('ReadContract', () => {
         const pebblesContract = new web3.eth.Contract(PebblesContract.abi);
         await web3.eth.personal.unlockAccount(pebblesOwner, '');
         pebblesInstance = await pebblesContract.deploy({
-            arguments: [pebblesOwner],
             data: PebblesContract.bytecode
         })
         .send({
@@ -84,4 +84,47 @@ describe('ReadContract', () => {
             assert.equal(book[prop], readContractDataStub[prop], `"${prop}" property data mismatch`);
         })
     });
+
+    it('Purchase happens', async() => {
+        // Update currency rate in data contract
+        await web3.eth.personal.unlockAccount(dataOwner, '');
+        await dataInstance.methods.updateRate(
+            readContractDataStub.currency,
+            web3.utils.toWei('1')
+        ).send({
+            from: dataOwner,
+            gas: gasLimit
+        });
+
+        // Prefund buyer with PBL tokens
+        await web3.eth.personal.unlockAccount(pebblesOwner, '');
+        await pebblesInstance.methods.transfer(
+            buyer,
+            web3.utils.toWei('100')
+        ).send({
+            from: pebblesOwner,
+            gas: gasLimit
+        });
+
+        // Approve read contract to spend buyers PBL tokens
+        await web3.eth.personal.unlockAccount(buyer, '');
+        await pebblesInstance.methods.approve(
+            readInstance._address,
+            web3.utils.toWei('8')
+        ).send({
+            from: buyer,
+            gas: gasLimit
+        });
+
+        // Perform buy from buyer account
+        await web3.eth.personal.unlockAccount(buyer, '');
+        await readInstance.methods.buy()
+            .send({
+                from: buyer,
+                gas: gasLimit
+            });
+
+        assert.equal(2, await readInstance.methods.balanceOf(buyer).call());
+        assert.equal(web3.utils.toWei('92'), await pebblesInstance.methods.balanceOf(buyer).call());
+    })
 })
