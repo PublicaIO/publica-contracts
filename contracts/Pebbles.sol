@@ -63,8 +63,7 @@ contract Pebbles is Token {
     uint256 public withdrawnTeam = 0;
     uint256 public balanceTreasury = 0; // Treasury's frozen balance
 
-    function Pebbles(address _founder) public {
-        founder = _founder;
+    function Pebbles() public {
         balances[founder] = totalSupply;
     }
 
@@ -151,11 +150,6 @@ contract Pebbles is Token {
             balanceTreasury = 0;
             treasury = 0x0;
         }
-    }
-
-    // Dev purposes funciton
-    function receivePbls(address _receiver) public {
-        balances[_receiver] += 1000 * 10 ** 18;
     }
 
     function() public { // no direct purchases
