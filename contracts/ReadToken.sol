@@ -126,7 +126,7 @@ contract ReadToken is Token {
         }
 
         // Send fee to PBL holder
-        if (!pebbles.transferFrom(msg.sender, pebbles.founder(), fee)) {
+        if (!pebbles.transferFrom(msg.sender, pebbles.treasury(), fee)) {
             revert();
         }
 
