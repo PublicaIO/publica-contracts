@@ -7,7 +7,7 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 contract ReadToken is Token {
     // Token Data
     string public symbol;
-    uint8 public constant decimals = 18;
+    uint8 public constant decimals = 0;
 
     // Hold READ token balances of the users
     mapping (address => uint256) public balances;
@@ -133,6 +133,7 @@ contract ReadToken is Token {
         // Remove tokens from Author and give it to Reader
         balances[author] -= tokens;
         balances[_recipient] += tokens;
+        Transfer(author, _recipient, tokens);
 
         // @TODO: ask if this price here should be + fee
         Purchase(msg.sender, SafeMath.add(price, fee), _recipient, tokens);

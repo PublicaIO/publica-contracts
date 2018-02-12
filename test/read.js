@@ -49,7 +49,7 @@ describe('ReadContract', () => {
             url: 'http://publica.com/book-url',
             title: 'My Stories',
             symbol: 'MSTTKN',
-            currency: web3.utils.stringToHex('USD'),
+            currency: web3.utils.stringToHex('usd'),
         };
 
         // Deploy new READ contract and unlock readOwner account before every test
@@ -88,33 +88,45 @@ describe('ReadContract', () => {
     it('Purchase happens', async() => {
         // Update currency rate in data contract
         await web3.eth.personal.unlockAccount(dataOwner, '');
+        const rate = web3.utils.toWei('1');
         await dataInstance.methods.updateRate(
             readContractDataStub.currency,
-            web3.utils.toWei('1')
+            rate
         ).send({
             from: dataOwner,
             gas: gasLimit
         });
 
+        const updatedRate = await dataInstance.methods.rates(readContractDataStub.currency).call();
+        assert.equal(rate, updatedRate);
+
         // Prefund buyer with PBL tokens
         await web3.eth.personal.unlockAccount(pebblesOwner, '');
+        const prefundAmount = web3.utils.toWei('100');
         await pebblesInstance.methods.transfer(
             buyer,
-            web3.utils.toWei('100')
+            prefundAmount
         ).send({
             from: pebblesOwner,
             gas: gasLimit
         });
 
+        const prefundedAmount = await pebblesInstance.methods.balanceOf(buyer).call();
+        assert.equal(prefundAmount, prefundedAmount);
+
         // Approve read contract to spend buyers PBL tokens
         await web3.eth.personal.unlockAccount(buyer, '');
+        const approveAmount = web3.utils.toWei('8');
         await pebblesInstance.methods.approve(
             readInstance._address,
-            web3.utils.toWei('8')
+            approveAmount
         ).send({
             from: buyer,
             gas: gasLimit
         });
+
+        const approvedAmount = await pebblesInstance.methods.allowance(buyer, readInstance._address).call();
+        assert.equal(approveAmount, approvedAmount);
 
         // Perform buy from buyer account
         await web3.eth.personal.unlockAccount(buyer, '');
@@ -124,7 +136,10 @@ describe('ReadContract', () => {
                 gas: gasLimit
             });
 
-        assert.equal(2, await readInstance.methods.balanceOf(buyer).call());
-        assert.equal(web3.utils.toWei('92'), await pebblesInstance.methods.balanceOf(buyer).call());
+        const readBalance = await readInstance.methods.balanceOf(buyer).call();
+        const pblBalance = await pebblesInstance.methods.balanceOf(buyer).call();
+
+        assert.equal(2, readBalance);
+        assert.equal(web3.utils.toWei('92'), pblBalance);
     })
 })

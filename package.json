@@ -4,9 +4,9 @@
   "description": "Contracts used for Publica platform",
   "scripts": {
     "compile": "rm -rf build/contracts && truffle compile",
-    "test": "mocha -t 30000",
-    "test:read": "mocha -t 30000 test/read.js",
-    "test:data": "mocha -t 30000 test/data.js"
+    "test": "mocha -t 1800000",
+    "test:read": "mocha -t 1800000 test/read.js",
+    "test:data": "mocha -t 1800000 test/data.js"
   },
   "author": "Scandiweb",
   "license": "MIT",
