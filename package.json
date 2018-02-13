@@ -1,6 +1,6 @@
 {
   "name": "publica-contracts",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Contracts used for Publica platform",
   "scripts": {
     "compile": "rm -rf build/contracts && truffle compile",

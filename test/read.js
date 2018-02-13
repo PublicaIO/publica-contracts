@@ -3,7 +3,8 @@ const Web3 = require('web3');
 
 var web3 = new Web3();
 web3.setProvider(new Web3.providers.HttpProvider('http://localhost:8545'));
-const gasLimit = 6000000;
+const gas = 3000000;
+const gasPrice = 5000000000;
 
 const ReadTokenContract = require('../build/contracts/ReadToken.json');
 const PebblesContract = require('../build/contracts/Pebbles.json');
@@ -26,7 +27,8 @@ describe('ReadContract', () => {
         })
         .send({
             from: dataOwner,
-            gas: gasLimit
+            gas,
+            gasPrice
         });
 
         // Deploy new Pebbles contract and unlock pebblesOwner account before every test
@@ -37,7 +39,8 @@ describe('ReadContract', () => {
         })
         .send({
             from: pebblesOwner,
-            gas: gasLimit
+            gas,
+            gasPrice
         });
 
         // Prepare data for READ contract
@@ -61,7 +64,8 @@ describe('ReadContract', () => {
         })
         .send({
             from: readOwner,
-            gas: gasLimit
+            gas,
+            gasPrice
         });
 
         readInstance.setProvider(web3.currentProvider);
@@ -70,11 +74,9 @@ describe('ReadContract', () => {
     });
 
     it('instances (Data, READ, Pebbles) can be deployed', async () => {
-        const deployed = typeof readInstance._address === 'string'
-            && typeof pebblesInstance._address === 'string'
-            && typeof dataInstance._address === 'string';
-
-        assert.equal(true, deployed);
+        assert.equal(typeof readInstance._address === 'string', true, 'READ contract was not deployed');
+        assert.equal(typeof pebblesInstance._address === 'string', true, 'PBL contract was not deployed');
+        assert.equal(typeof dataInstance._address === 'string', true, 'Data contract was not deployed');
     })
 
     it('READ contract has correct Book data', async () => {
@@ -94,11 +96,12 @@ describe('ReadContract', () => {
             rate
         ).send({
             from: dataOwner,
-            gas: gasLimit
+            gas,
+            gasPrice
         });
 
         const updatedRate = await dataInstance.methods.rates(readContractDataStub.currency).call();
-        assert.equal(rate, updatedRate);
+        assert.equal(updatedRate, rate, 'Currency rate in Data contract was not updated');
 
         // Prefund buyer with PBL tokens
         await web3.eth.personal.unlockAccount(pebblesOwner, '');
@@ -108,11 +111,12 @@ describe('ReadContract', () => {
             prefundAmount
         ).send({
             from: pebblesOwner,
-            gas: gasLimit
+            gas,
+            gasPrice
         });
 
         const prefundedAmount = await pebblesInstance.methods.balanceOf(buyer).call();
-        assert.equal(prefundAmount, prefundedAmount);
+        assert.equal(prefundedAmount, prefundAmount, 'Account was not prefunded with 100 PBL');
 
         // Approve read contract to spend buyers PBL tokens
         await web3.eth.personal.unlockAccount(buyer, '');
@@ -122,24 +126,26 @@ describe('ReadContract', () => {
             approveAmount
         ).send({
             from: buyer,
-            gas: gasLimit
+            gas,
+            gasPrice
         });
 
         const approvedAmount = await pebblesInstance.methods.allowance(buyer, readInstance._address).call();
-        assert.equal(approveAmount, approvedAmount);
+        assert.equal(approvedAmount, approveAmount, 'Allowance was not set');
 
         // Perform buy from buyer account
         await web3.eth.personal.unlockAccount(buyer, '');
         await readInstance.methods.buy()
             .send({
                 from: buyer,
-                gas: gasLimit
+                gas,
+                gasPrice,
             });
 
         const readBalance = await readInstance.methods.balanceOf(buyer).call();
         const pblBalance = await pebblesInstance.methods.balanceOf(buyer).call();
 
-        assert.equal(2, readBalance);
-        assert.equal(web3.utils.toWei('92'), pblBalance);
+        assert.equal(readBalance, 2, 'READ balance was not update');
+        assert.equal(pblBalance, web3.utils.toWei('92'), 'PBL balance was not updated');
     })
 })
