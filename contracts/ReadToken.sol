@@ -111,11 +111,6 @@ contract ReadToken is Token {
             tokens = balances[author];
         }
 
-        // tokens == 0 tokens - token are not being sold, < means overflow
-        if (SafeMath.add(balances[_recipient], tokens) <= balances[_recipient]) {
-            return 0;
-        }
-
         uint256 price = SafeMath.mul(tokens, book.pblPrice);
         uint256 fee = SafeMath.div(price, FEE_PERCENT);
         price = SafeMath.sub(price, fee);
@@ -134,8 +129,6 @@ contract ReadToken is Token {
         balances[author] -= tokens;
         balances[_recipient] += tokens;
         Transfer(author, _recipient, tokens);
-
-        // @TODO: ask if this price here should be + fee
         Purchase(msg.sender, SafeMath.add(price, fee), _recipient, tokens);
 
         return tokens;
