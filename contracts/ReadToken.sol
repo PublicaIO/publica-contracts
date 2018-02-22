@@ -7,6 +7,7 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 contract ReadToken is Token {
     // Token Data
     string public symbol;
+    string public name;
     uint8 public constant decimals = 0;
 
     // Hold READ token balances of the users
@@ -18,7 +19,7 @@ contract ReadToken is Token {
     Pebbles public pebbles = Pebbles(0x0);
     Data public data = Data(0x0);
     address public author;
-    uint256 public totalTokens = 2**256 - 1;
+    uint256 public totalTokens = 0;
     bytes3 public currency;
     uint8 public constant FEE_PERCENT = 10;
 
@@ -40,6 +41,7 @@ contract ReadToken is Token {
         string _url,                      // Book url
         string _title,                    // Book title
         string _tokenSymbol,              // Token symbol
+        string _tokenName,                // Token name
         bytes3 _currency                  // Currency symbol
     ) public {
         pebbles = _pebbles;
@@ -50,7 +52,7 @@ contract ReadToken is Token {
         currency = _currency;
 
         symbol = _tokenSymbol;
-        balances[author] = totalTokens;
+        name = _tokenName;
     }
 
     // ERC20 Token Interface implementation
@@ -59,24 +61,25 @@ contract ReadToken is Token {
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
-        if (balances[msg.sender] < _value || SafeMath.add(balances[_to], _value) <= balances[_to]) {
+        if (balances[msg.sender] < _value) {
             return false;
         }
 
-        balances[msg.sender] -= _value;
-        balances[_to] += _value;
+        balances[msg.sender] = SafeMath.sub(balances[msg.sender], _value);
+        balances[_to] = SafeMath.add(balances[_to], _value);
         Transfer(msg.sender, _to, _value);
 
         return true;
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        if (balances[_from] < _value || allowed[_from][msg.sender] < _value || SafeMath.add(balances[_to], _value) <= balances[_to]) {
+        if (balances[_from] < _value || allowed[_from][msg.sender] < _value) {
             return false;
         }
-        allowed[_from][msg.sender] -= _value;
-        balances[_from] -= _value;
-        balances[_to] += _value;
+
+        allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender], _value);
+        balances[_from] = SafeMath.sub(balances[_from], _value);
+        balances[_to] = SafeMath.add(balances[_to], _value);
         Transfer(_from, _to, _value);
 
         return true;
@@ -107,10 +110,6 @@ contract ReadToken is Token {
         book.pblPrice = data.convert(currency, book.price);
 
         uint256 tokens = SafeMath.div(allowedPbls, book.pblPrice);
-        if (tokens > balances[author]) {
-            tokens = balances[author];
-        }
-
         uint256 price = SafeMath.mul(tokens, book.pblPrice);
         uint256 fee = SafeMath.div(price, FEE_PERCENT);
         price = SafeMath.sub(price, fee);
@@ -125,10 +124,9 @@ contract ReadToken is Token {
             revert();
         }
 
-        // Remove tokens from Author and give it to Reader
-        balances[author] -= tokens;
-        balances[_recipient] += tokens;
-        Transfer(author, _recipient, tokens);
+        // Give tokens to reader and increment totalTokens
+        balances[_recipient] = SafeMath.add(balances[_recipient], tokens);
+        totalTokens = SafeMath.add(totalTokens, tokens);
         Purchase(msg.sender, SafeMath.add(price, fee), _recipient, tokens);
 
         return tokens;

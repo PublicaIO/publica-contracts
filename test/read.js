@@ -52,6 +52,7 @@ describe('ReadContract', () => {
             url: 'http://publica.com/book-url',
             title: 'My Stories',
             symbol: 'MSTTKN',
+            name: 'My Read Token',
             currency: web3.utils.stringToHex('usd'),
         };
 
