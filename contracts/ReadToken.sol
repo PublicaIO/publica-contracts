@@ -111,7 +111,7 @@ contract ReadToken is Token {
 
         uint256 tokens = SafeMath.div(allowedPbls, book.pblPrice);
         uint256 price = SafeMath.mul(tokens, book.pblPrice);
-        uint256 fee = SafeMath.div(price, FEE_PERCENT);
+        uint256 fee = SafeMath.mul(SafeMath.div(price, 100), FEE_PERCENT);
         price = SafeMath.sub(price, fee);
 
         // Check if PBL from Reader was sent to author
