@@ -22,6 +22,7 @@ contract ReadToken is Token {
     uint256 public totalTokens = 0;
     bytes3 public currency;
     uint8 public constant FEE_PERCENT = 10;
+    address public constant FEE_RECEIVER = 0xa6b02eE1e4eB59AFb7a8aB930357c02c9dC29dAD;
 
     // Book related data
     struct Book {
@@ -120,7 +121,7 @@ contract ReadToken is Token {
         }
 
         // Send fee to PBL holder
-        if (!pebbles.transferFrom(msg.sender, pebbles.treasury(), fee)) {
+        if (!pebbles.transferFrom(msg.sender, FEE_RECEIVER, fee)) {
             revert();
         }
 

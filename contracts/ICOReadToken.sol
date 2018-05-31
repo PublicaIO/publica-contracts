@@ -109,12 +109,12 @@ contract ICOReadToken is Token {
         uint _CSStartDate,             // ICO start date
         uint _CSEndDate,               // ICO end date
 
-        string _url,                      // Book url
-        string _title,                    // Book title
+        string _url,                   // Book url
+        string _title,                 // Book title
 
-        string _tokenSymbol,              // Token symbol
-        string _tokenName,                // Token name
-        bytes3 _currency                  // Fiat currency symbol
+        string _tokenSymbol,           // Token symbol
+        string _tokenName,             // Token name
+        bytes3 _currency               // Fiat currency symbol
     ) public {
         require(_pebbles != address(0));
         require(_data != address(0));
