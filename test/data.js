@@ -1,17 +1,29 @@
 const assert = require('assert');
-const Web3 = require('web3');
 
-var web3 = new Web3();
-web3.setProvider(new Web3.providers.HttpProvider('http://localhost:8545'));
-const gasLimit = 6000000;
-
-const DataContract = require('../build/contracts/Data.json');
+const dataContractManager = require('./managers/data');
+const web3 = require('./managers/web3');
 
 const prepareTestData = (test) => {
     return {
         code: web3.utils.stringToHex(test.code),
         rate: web3.utils.toWei(test.rate),
         amount: web3.utils.toWei(test.amount)
+    }
+}
+
+const updateRate = async function (updater, code, rate, willThrow = false) {
+    if (willThrow) {
+        try {
+            await dataContractManager.setRate(dataInstance._address, updater, '', rate, code);
+            assert(false, 'Method should have thrown an exception');
+        } catch (error) {
+            assert(
+                error.message.indexOf('always failing transaction') !== -1,
+                `Not expected error message: ${error.message}`
+            );
+        }
+    } else {
+        await dataContractManager.setRate(dataInstance._address, updater, '', rate, code);
     }
 }
 
@@ -22,18 +34,8 @@ describe('DataContract', () => {
         oracle = accounts[0];
         account = accounts[1];
 
-        // Deploy new contract and unlock oracle account before every test
-        const contract = new web3.eth.Contract(DataContract.abi);
-        await web3.eth.personal.unlockAccount(oracle, '');
-        dataInstance = await contract.deploy({
-            data: DataContract.bytecode
-        })
-        .send({
-            from: oracle,
-            gas: gasLimit
-        });
-
-        dataInstance.setProvider(web3.currentProvider);
+        // Deploy new contract before every test
+        dataInstance = await dataContractManager.deploy(oracle, '');
     });
 
     it('instance can be deployed', async () => {
@@ -57,10 +59,7 @@ describe('DataContract', () => {
         const data = prepareTestData(test);
 
         it(`can update "${test.code}" currency rate to "${test.rate}" form oracle account`, async () => {
-            // Wait for transaction to be mined
-            await dataInstance.methods.updateRate(data.code, data.rate).send(
-                { from: oracle, gas: gasLimit }
-            );
+            await updateRate(oracle, data.code, data.rate);
 
             // Make sure that contract has correct rate set
             assert.equal(data.rate, await dataInstance.methods.rates(data.code).call());
@@ -71,19 +70,14 @@ describe('DataContract', () => {
             const currentRate = await dataInstance.methods.rates(data.code).call();
             assert.equal(currentRate, 0);
 
-            await web3.eth.personal.unlockAccount(account, '');
-            await dataInstance.methods.updateRate(data.code, data.rate).send(
-                { from: account, gas: gasLimit }
-            );
+            await updateRate(account, data.code, data.rate, true);
 
             // Make sure that rate was not updated
             assert.notEqual(data.rate, await dataInstance.methods.rates(data.code).call());
         })
 
         it(`can correctly convert amount of ${test.amount} "${test.code}" => "PBL" using rate "${test.rate}"`, async () => {
-            await dataInstance.methods.updateRate(data.code, data.rate).send(
-                { from: oracle, gas: gasLimit }
-            );
+            await updateRate(oracle, data.code, data.rate);
 
             const convertedInContract = await dataInstance.methods.convert(data.code, data.amount).call();
             const convertedInTest = web3.utils.fromWei(
@@ -95,14 +89,10 @@ describe('DataContract', () => {
 
         it(`unable to set "${test.code}" => "PBL" rate to 0`, async () => {
             // Set correct rate initially
-            await dataInstance.methods.updateRate(data.code, data.rate).send(
-                { from: oracle, gas: gasLimit }
-            );
+            await updateRate(oracle, data.code, data.rate);
 
             // Try setting 0 as a rate
-            await dataInstance.methods.updateRate(data.code, 0).send(
-                { from: oracle, gas: gasLimit }
-            );
+            await updateRate(oracle, data.code, 0, true);
 
             // Current rate should be the previously set one
             assert.equal(data.rate, await dataInstance.methods.rates(data.code).call());
